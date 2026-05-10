@@ -69,6 +69,12 @@ http://localhost:4200
 
 The page calls the gateway on `http://localhost:8080`. It can login as admin/driver, load public route and live bus data, create routes/stops/buses, start/complete trips, send GPS locations, and receive WebSocket live location updates.
 
+## Demo SQL Seeds
+
+The backend auto-seeds demo data on startup. SQL seed files are also stored in `database/seed/` for GitHub review or manual DataGrip/psql import.
+
+See `database/README.md` for the database-to-file mapping and import commands.
+
 ## Run A Service
 
 Example:

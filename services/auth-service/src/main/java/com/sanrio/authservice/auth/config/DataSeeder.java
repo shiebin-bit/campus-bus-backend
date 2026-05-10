@@ -18,22 +18,23 @@ public class DataSeeder {
     @Bean
     CommandLineRunner seedUsers() {
         return args -> {
-            if (!userRepository.existsByEmail("admin@campusbus.com")) {
-                userRepository.save(User.builder()
-                        .name("System Admin")
-                        .email("admin@campusbus.com")
-                        .password(passwordEncoder.encode("Admin123!"))
-                        .role(Role.ADMIN)
-                        .build());
-            }
-            if (!userRepository.existsByEmail("driver@campusbus.com")) {
-                userRepository.save(User.builder()
-                        .name("Campus Driver")
-                        .email("driver@campusbus.com")
-                        .password(passwordEncoder.encode("Driver123!"))
-                        .role(Role.DRIVER)
-                        .build());
-            }
+            seedUser("System Admin", "admin@campusbus.com", "Admin123!", Role.ADMIN);
+            seedUser("Campus Driver", "driver@campusbus.com", "Driver123!", Role.DRIVER);
+            seedUser("Nora Campus Driver", "nora.driver@campusbus.com", "Driver123!", Role.DRIVER);
+            seedUser("Ravi Campus Driver", "ravi.driver@campusbus.com", "Driver123!", Role.DRIVER);
+            seedUser("Aina Campus Driver", "aina.driver@campusbus.com", "Driver123!", Role.DRIVER);
         };
+    }
+
+    private void seedUser(String name, String email, String password, Role role) {
+        if (userRepository.existsByEmail(email)) {
+            return;
+        }
+        userRepository.save(User.builder()
+                .name(name)
+                .email(email)
+                .password(passwordEncoder.encode(password))
+                .role(role)
+                .build());
     }
 }
