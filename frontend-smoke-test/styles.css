@@ -219,12 +219,109 @@ h3 {
 
 .campus-map {
   width: 100%;
+  height: 430px;
   min-height: 430px;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 24px;
   background: var(--leaf);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+/* Local fallback for critical Leaflet layout rules when the CDN CSS is blocked. */
+.leaflet-container {
+  position: relative;
+  overflow: hidden;
+  outline-style: none;
+}
+
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.leaflet-tile {
+  visibility: hidden;
+  border: 0;
+  max-width: none !important;
+}
+
+.leaflet-tile-loaded {
+  visibility: inherit;
+}
+
+.leaflet-tile-pane {
+  z-index: 200;
+}
+
+.leaflet-overlay-pane {
+  z-index: 400;
+}
+
+.leaflet-shadow-pane {
+  z-index: 500;
+}
+
+.leaflet-marker-pane {
+  z-index: 600;
+}
+
+.leaflet-tooltip-pane {
+  z-index: 650;
+}
+
+.leaflet-popup-pane {
+  z-index: 700;
+}
+
+.leaflet-control {
+  position: relative;
+  z-index: 800;
+  pointer-events: auto;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  position: absolute;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.leaflet-top {
+  top: 0;
+}
+
+.leaflet-right {
+  right: 0;
+}
+
+.leaflet-bottom {
+  bottom: 0;
+}
+
+.leaflet-left {
+  left: 0;
+}
+
+.leaflet-control-container .leaflet-control {
+  margin: 10px;
 }
 
 .map-hint {
@@ -548,6 +645,7 @@ pre {
   }
 
   .campus-map {
+    height: 340px;
     min-height: 340px;
   }
 }

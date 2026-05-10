@@ -4,13 +4,13 @@ This is a simple static frontend for manually testing the Campus Bus backend bus
 
 It is not a full Angular/Ionic application yet. It is a lightweight demo page that proves the backend APIs can be used from a browser.
 
-The page uses the API Gateway as its single backend entry point:
+The page tries the API Gateway first:
 
 ```text
 http://localhost:8080
 ```
 
-The individual service ports `8081-8086` still exist for Swagger and debugging, but the frontend no longer needs to know about them.
+If the gateway is not reachable, the page automatically falls back to the individual service ports `8081-8086` so the demo can still verify auth, admin, driver, and student flows.
 
 ## Run
 
@@ -34,6 +34,7 @@ http://localhost:4200
 ```
 
 Port `4200` is used because the gateway CORS config already allows Angular-style local frontend origins.
+VS Code Live Server on `http://localhost:5500` is also allowed, but restart the backend with `docker compose up --build` after CORS changes.
 
 ## What You Can Test
 

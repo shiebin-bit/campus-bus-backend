@@ -14,7 +14,7 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 public class WebSocketConfig implements WebSocketConfigurer {
     private final LiveLocationWebSocketHandler liveLocationWebSocketHandler;
 
-    @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:8100,http://127.0.0.1:4200,http://127.0.0.1:8100}")
+    @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:5500,http://localhost:8100,http://127.0.0.1:4200,http://127.0.0.1:5500,http://127.0.0.1:8100}")
     private String[] allowedOrigins;
 
     @Override

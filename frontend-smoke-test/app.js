@@ -1,10 +1,11 @@
-const services = {
-  auth: "http://localhost:8080",
-  route: "http://localhost:8080",
-  stop: "http://localhost:8080",
-  bus: "http://localhost:8080",
-  trip: "http://localhost:8080",
-  location: "http://localhost:8080",
+const gatewayBase = "http://localhost:8080";
+const serviceBases = {
+  auth: [gatewayBase, "http://localhost:8081"],
+  route: [gatewayBase, "http://localhost:8082"],
+  stop: [gatewayBase, "http://localhost:8083"],
+  bus: [gatewayBase, "http://localhost:8084"],
+  trip: [gatewayBase, "http://localhost:8085"],
+  location: [gatewayBase, "http://localhost:8086"],
 };
 
 const accounts = {
@@ -41,7 +42,7 @@ const els = {
 };
 
 const campusCenter = [2.946, 101.876];
-const liveSocketUrl = "ws://localhost:8080/ws/locations/live";
+const liveSocketUrls = ["ws://localhost:8080/ws/locations/live", "ws://localhost:8086/ws/locations/live"];
 const busIcon = typeof L === "undefined" ? null : L.divIcon({
   className: "bus-map-marker",
   html: "<span>BUS</span>",
@@ -92,12 +93,32 @@ function setRole(role, user = null, token = "") {
   els.driverAccessPill.classList.toggle("ok", role === "DRIVER");
 }
 
+function isVisibleMapContainer() {
+  const mapElement = document.querySelector("#campusMap");
+  return Boolean(mapElement?.offsetWidth && mapElement?.offsetHeight);
+}
+
+function refreshMapSize() {
+  if (!state.map) {
+    return;
+  }
+  requestAnimationFrame(() => {
+    state.map.invalidateSize();
+    window.setTimeout(() => state.map?.invalidateSize(), 120);
+    window.setTimeout(() => state.map?.invalidateSize(), 360);
+  });
+}
+
 function initMap() {
   if (state.map) {
+    refreshMapSize();
     return;
   }
   if (typeof L === "undefined") {
     log("Map unavailable", "Leaflet did not load. Check your internet connection or CDN access.", "error");
+    return;
+  }
+  if (!isVisibleMapContainer()) {
     return;
   }
 
@@ -114,6 +135,7 @@ function initMap() {
 
   state.stopLayer = L.layerGroup().addTo(state.map);
   state.busLayer = L.layerGroup().addTo(state.map);
+  refreshMapSize();
 }
 
 function markerBounds(points) {
@@ -136,6 +158,7 @@ function fitMap(points) {
   if (bounds) {
     state.map.fitBounds(bounds.pad(0.25), { maxZoom: 17 });
   }
+  refreshMapSize();
 }
 
 function renderStopMarkers(stops) {
@@ -201,11 +224,30 @@ async function api(label, service, path, options = {}) {
     ...(options.auth ? { Authorization: `Bearer ${state.token}` } : {}),
   };
 
-  const response = await fetch(`${services[service]}${path}`, {
-    method: options.method || "GET",
-    headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
+  const bases = serviceBases[service] || [gatewayBase];
+  let response;
+  let lastNetworkError;
+  let usedBase = bases[0];
+
+  for (const base of bases) {
+    try {
+      usedBase = base;
+      response = await fetch(`${base}${path}`, {
+        method: options.method || "GET",
+        headers,
+        body: options.body ? JSON.stringify(options.body) : undefined,
+      });
+      break;
+    } catch (error) {
+      lastNetworkError = error;
+    }
+  }
+
+  if (!response) {
+    throw new Error(
+      `Cannot reach ${bases.join(" or ")}${path}. Start Docker with "docker compose up --build" and open the frontend from http://localhost:4200 or VS Code Live Server http://localhost:5500.`
+    );
+  }
 
   const text = await response.text();
   let payload = null;
@@ -223,7 +265,7 @@ async function api(label, service, path, options = {}) {
     throw error;
   }
 
-  log(label, payload, "ok");
+  log(`${label} (${usedBase})`, payload, "ok");
   return payload;
 }
 
@@ -303,17 +345,18 @@ function mergeLiveLocation(location) {
   log("WebSocket live location", location, "ok");
 }
 
-function connectLiveSocket() {
+function connectLiveSocket(urlIndex = 0) {
   if (state.liveSocket && [WebSocket.CONNECTING, WebSocket.OPEN].includes(state.liveSocket.readyState)) {
     return;
   }
 
+  const socketUrl = liveSocketUrls[urlIndex] || liveSocketUrls[0];
   setWebSocketStatus("Connecting...", "busy");
-  state.liveSocket = new WebSocket(liveSocketUrl);
+  state.liveSocket = new WebSocket(socketUrl);
 
   state.liveSocket.addEventListener("open", () => {
     setWebSocketStatus("Connected", "ok");
-    log("WebSocket connected", liveSocketUrl, "ok");
+    log("WebSocket connected", socketUrl, "ok");
   });
 
   state.liveSocket.addEventListener("message", (event) => {
@@ -328,9 +371,10 @@ function connectLiveSocket() {
   });
 
   state.liveSocket.addEventListener("close", () => {
+    const nextUrlIndex = (urlIndex + 1) % liveSocketUrls.length;
     setWebSocketStatus("Disconnected. Reconnecting...", "fail");
     window.clearTimeout(state.liveSocketReconnectTimer);
-    state.liveSocketReconnectTimer = window.setTimeout(connectLiveSocket, 3000);
+    state.liveSocketReconnectTimer = window.setTimeout(() => connectLiveSocket(nextUrlIndex), 3000);
   });
 
   state.liveSocket.addEventListener("error", () => {
@@ -487,7 +531,7 @@ document.querySelectorAll("[data-tab]").forEach((button) => {
     document.querySelector(`#${button.dataset.tab}`).classList.add("active");
     if (button.dataset.tab === "student") {
       initMap();
-      setTimeout(() => state.map?.invalidateSize(), 0);
+      refreshMapSize();
     }
   });
 });
@@ -520,6 +564,10 @@ document.querySelector("#clearLogBtn").addEventListener("click", () => {
 });
 
 setRole("STUDENT");
-initMap();
+window.addEventListener("load", () => {
+  initMap();
+  refreshMapSize();
+});
+window.addEventListener("resize", refreshMapSize);
 connectLiveSocket();
 log("Frontend ready", "Run docker compose up --build, then serve this folder on http://localhost:4200.");

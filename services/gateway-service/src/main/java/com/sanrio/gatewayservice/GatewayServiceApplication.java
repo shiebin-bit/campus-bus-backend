@@ -6,9 +6,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.reactive.CorsWebFilter;
-import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
 
 import java.util.List;
 
@@ -43,15 +45,30 @@ public class GatewayServiceApplication {
     }
 
     @Bean
-    CorsWebFilter corsWebFilter(@Value("${app.cors.allowed-origins}") List<String> allowedOrigins) {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(allowedOrigins);
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("Authorization"));
+    WebFilter corsPreflightFilter(@Value("${app.cors.allowed-origins}") List<String> allowedOrigins) {
+        return (exchange, chain) -> {
+            if (!isPreflightRequest(exchange)) {
+                return chain.filter(exchange);
+            }
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return new CorsWebFilter(source);
+            String origin = exchange.getRequest().getHeaders().getOrigin();
+            if (origin != null && allowedOrigins.contains(origin)) {
+                HttpHeaders headers = exchange.getResponse().getHeaders();
+                headers.setAccessControlAllowOrigin(origin);
+                headers.setAccessControlAllowMethods(List.of(HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT,
+                        HttpMethod.PATCH, HttpMethod.DELETE, HttpMethod.OPTIONS));
+                headers.setAccessControlAllowHeaders(exchange.getRequest().getHeaders().getAccessControlRequestHeaders());
+                headers.setAccessControlExposeHeaders(List.of(HttpHeaders.AUTHORIZATION));
+            }
+
+            exchange.getResponse().setStatusCode(HttpStatus.OK);
+            return exchange.getResponse().setComplete();
+        };
+    }
+
+    private boolean isPreflightRequest(ServerWebExchange exchange) {
+        return exchange.getRequest().getMethod() == HttpMethod.OPTIONS
+                && exchange.getRequest().getHeaders().getOrigin() != null
+                && exchange.getRequest().getHeaders().getAccessControlRequestMethod() != null;
     }
 }
