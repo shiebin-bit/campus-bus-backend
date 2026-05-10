@@ -1,0 +1,269 @@
+name: campus-bus
+
+services:
+  auth-db:
+    image: postgres:16-alpine
+    container_name: auth-db
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - campus-bus-network
+
+  route-db:
+    image: postgres:16-alpine
+    container_name: route-db
+    environment:
+      POSTGRES_DB: route_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5434:5432"
+    volumes:
+      - route-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d route_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - campus-bus-network
+
+  stop-db:
+    image: postgres:16-alpine
+    container_name: stop-db
+    environment:
+      POSTGRES_DB: stop_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5435:5432"
+    volumes:
+      - stop-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d stop_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - campus-bus-network
+
+  bus-db:
+    image: postgres:16-alpine
+    container_name: bus-db
+    environment:
+      POSTGRES_DB: bus_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5436:5432"
+    volumes:
+      - bus-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bus_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - campus-bus-network
+
+  trip-db:
+    image: postgres:16-alpine
+    container_name: trip-db
+    environment:
+      POSTGRES_DB: trip_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5437:5432"
+    volumes:
+      - trip-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d trip_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - campus-bus-network
+
+  location-db:
+    image: postgres:16-alpine
+    container_name: location-db
+    environment:
+      POSTGRES_DB: location_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5438:5432"
+    volumes:
+      - location-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d location_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - campus-bus-network
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    image: campus-bus/auth-service:latest
+    container_name: auth-service
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+    ports:
+      - "8081:8081"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    networks:
+      - campus-bus-network
+
+  route-service:
+    build:
+      context: .
+      dockerfile: services/route-service/Dockerfile
+    image: campus-bus/route-service:latest
+    container_name: route-service
+    environment:
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: jdbc:postgresql://route-db:5432/route_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+    ports:
+      - "8082:8082"
+    depends_on:
+      route-db:
+        condition: service_healthy
+    networks:
+      - campus-bus-network
+
+  stop-service:
+    build:
+      context: .
+      dockerfile: services/stop-service/Dockerfile
+    image: campus-bus/stop-service:latest
+    container_name: stop-service
+    environment:
+      SERVER_PORT: 8083
+      SPRING_DATASOURCE_URL: jdbc:postgresql://stop-db:5432/stop_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+    ports:
+      - "8083:8083"
+    depends_on:
+      stop-db:
+        condition: service_healthy
+    networks:
+      - campus-bus-network
+
+  bus-service:
+    build:
+      context: .
+      dockerfile: services/bus-service/Dockerfile
+    image: campus-bus/bus-service:latest
+    container_name: bus-service
+    environment:
+      SERVER_PORT: 8084
+      SPRING_DATASOURCE_URL: jdbc:postgresql://bus-db:5432/bus_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+    ports:
+      - "8084:8084"
+    depends_on:
+      bus-db:
+        condition: service_healthy
+    networks:
+      - campus-bus-network
+
+  trip-service:
+    build:
+      context: .
+      dockerfile: services/trip-service/Dockerfile
+    image: campus-bus/trip-service:latest
+    container_name: trip-service
+    environment:
+      SERVER_PORT: 8085
+      SPRING_DATASOURCE_URL: jdbc:postgresql://trip-db:5432/trip_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+    ports:
+      - "8085:8085"
+    depends_on:
+      trip-db:
+        condition: service_healthy
+    networks:
+      - campus-bus-network
+
+  location-service:
+    build:
+      context: .
+      dockerfile: services/location-service/Dockerfile
+    image: campus-bus/location-service:latest
+    container_name: location-service
+    environment:
+      SERVER_PORT: 8086
+      SPRING_DATASOURCE_URL: jdbc:postgresql://location-db:5432/location_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+    ports:
+      - "8086:8086"
+    depends_on:
+      location-db:
+        condition: service_healthy
+    networks:
+      - campus-bus-network
+
+  gateway-service:
+    build:
+      context: .
+      dockerfile: services/gateway-service/Dockerfile
+    image: campus-bus/gateway-service:latest
+    container_name: gateway-service
+    environment:
+      SERVER_PORT: 8080
+      AUTH_SERVICE_URL: http://auth-service:8081
+      ROUTE_SERVICE_URL: http://route-service:8082
+      STOP_SERVICE_URL: http://stop-service:8083
+      BUS_SERVICE_URL: http://bus-service:8084
+      TRIP_SERVICE_URL: http://trip-service:8085
+      LOCATION_SERVICE_URL: http://location-service:8086
+      LOCATION_WS_URL: ws://location-service:8086
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+      - route-service
+      - stop-service
+      - bus-service
+      - trip-service
+      - location-service
+    networks:
+      - campus-bus-network
+
+volumes:
+  auth-db-data:
+  route-db-data:
+  stop-db-data:
+  bus-db-data:
+  trip-db-data:
+  location-db-data:
+
+networks:
+  campus-bus-network:
+    driver: bridge

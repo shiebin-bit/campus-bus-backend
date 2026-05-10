@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Bus Basic Frontend</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIINfQb8dAqEGTDc9MtK4zOCNJxkMDk6NDg="
+        crossorigin="">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Campus Bus System</p>
+        <h1>Simple Backend Demo Frontend</h1>
+        <p class="lede">
+          Login as Admin or Driver, manage routes, stops, buses, trips, and view live bus locations from the microservice backend.
+        </p>
+      </div>
+      <aside class="session-card">
+        <span class="status-dot" id="statusDot"></span>
+        <strong id="statusText">Not logged in</strong>
+        <small id="statusDetail">Student read APIs are public.</small>
+        <button id="logoutBtn" class="ghost hidden">Logout</button>
+      </aside>
+    </section>
+
+    <section class="login-grid">
+      <article class="panel login-panel">
+        <div>
+          <p class="tag">Authentication</p>
+          <h2>Choose Role</h2>
+        </div>
+        <div class="login-actions">
+          <button data-login-role="ADMIN">Login Admin</button>
+          <button data-login-role="DRIVER" class="secondary">Login Driver</button>
+        </div>
+        <p class="hint">Admin: admin@campusbus.com / Admin123!</p>
+        <p class="hint">Driver: driver@campusbus.com / Driver123!</p>
+      </article>
+
+      <article class="panel">
+        <p class="tag">Quick Health</p>
+        <h2>Backend Check</h2>
+        <p class="hint">Checks public APIs that should work even without login.</p>
+        <p class="hint">WebSocket: <strong id="webSocketStatus">Connecting...</strong></p>
+        <button id="healthBtn">Check Connection</button>
+      </article>
+    </section>
+
+    <section class="panel demo-guide-card">
+      <div>
+        <p class="tag">Recommended Demo Flow</p>
+        <h2>Click These In Order</h2>
+        <p class="hint">Use this mini checklist when presenting. The same detailed version is in docs/DEMO_GUIDE.md.</p>
+      </div>
+      <ol class="demo-steps">
+        <li><strong>Check Connection</strong><span>Confirms gateway, routes, and live bus APIs are reachable.</span></li>
+        <li><strong>Student View</strong><span>Load Routes, load stops for route 101, then Refresh Live Buses to show the map.</span></li>
+        <li><strong>Admin Login</strong><span>Create a route, stop, and bus to prove ADMIN JWT authorization.</span></li>
+        <li><strong>Driver Login</strong><span>Start trip with bus 202, then send location. The map updates through WebSocket.</span></li>
+        <li><strong>Request Log</strong><span>Open the log tab to show real JSON responses from the backend.</span></li>
+      </ol>
+    </section>
+
+    <nav class="tabs" aria-label="Demo sections">
+      <button class="tab active" data-tab="student">Student View</button>
+      <button class="tab" data-tab="admin">Admin Panel</button>
+      <button class="tab" data-tab="driver">Driver Panel</button>
+      <button class="tab" data-tab="log">Request Log</button>
+    </nav>
+
+    <section id="student" class="tab-panel active">
+      <div class="section-heading">
+        <div>
+          <p class="tag">Public APIs</p>
+          <h2>Student View</h2>
+        </div>
+        <div class="action-row">
+          <button id="loadRoutesBtn">Load Routes</button>
+          <button id="loadLiveBtn" class="secondary">Refresh Live Buses</button>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <article class="panel">
+          <h3>Routes</h3>
+          <div id="routesList" class="cards empty">No routes loaded yet.</div>
+        </article>
+
+        <article class="panel">
+          <h3>Route Stops</h3>
+          <form id="studentStopsForm" class="inline-form">
+            <label>
+              Route ID
+              <input name="routeId" type="number" value="101" min="1" required>
+            </label>
+            <button type="submit">Load Stops</button>
+          </form>
+          <div id="stopsList" class="cards empty">No stops loaded yet.</div>
+        </article>
+
+        <article class="panel wide">
+          <h3>Live Buses</h3>
+          <div id="liveBusList" class="cards empty">No live bus data loaded yet.</div>
+        </article>
+
+        <article class="panel wide map-panel">
+          <div class="section-heading compact-heading">
+            <div>
+              <p class="tag">OpenStreetMap</p>
+              <h3>Campus Map</h3>
+            </div>
+            <div class="map-legend">
+              <span><i class="legend-dot stop-dot"></i>Stops</span>
+              <span><i class="legend-dot bus-dot"></i>Live buses</span>
+            </div>
+          </div>
+          <div id="campusMap" class="campus-map" aria-label="Campus bus map"></div>
+          <p class="hint map-hint">Load stops and live buses to display markers on the map.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="admin" class="tab-panel">
+      <div class="section-heading">
+        <div>
+          <p class="tag">ADMIN only</p>
+          <h2>Admin Panel</h2>
+        </div>
+        <span class="pill" id="adminAccessPill">Login as Admin to use write APIs</span>
+      </div>
+
+      <div class="content-grid three">
+        <article class="panel">
+          <h3>Create Route</h3>
+          <form id="createRouteForm" class="stack-form">
+            <label>
+              Route Name
+              <input name="routeName" value="Frontend Route" required>
+            </label>
+            <label>
+              Description
+              <textarea name="description" required>Created from simple frontend</textarea>
+            </label>
+            <button type="submit">Create Route</button>
+          </form>
+        </article>
+
+        <article class="panel">
+          <h3>Create Stop</h3>
+          <form id="createStopForm" class="stack-form">
+            <label>
+              Route ID
+              <input name="routeId" type="number" value="101" min="1" required>
+            </label>
+            <label>
+              Stop Name
+              <input name="stopName" value="Frontend Stop" required>
+            </label>
+            <div class="split">
+              <label>
+                Latitude
+                <input name="latitude" type="number" value="2.9488" step="0.000001" required>
+              </label>
+              <label>
+                Longitude
+                <input name="longitude" type="number" value="101.8788" step="0.000001" required>
+              </label>
+            </div>
+            <label>
+              Sequence No
+              <input name="sequenceNo" type="number" value="9" min="1" required>
+            </label>
+            <button type="submit">Create Stop</button>
+          </form>
+        </article>
+
+        <article class="panel">
+          <h3>Create Bus</h3>
+          <form id="createBusForm" class="stack-form">
+            <label>
+              Bus Code
+              <input name="busCode" value="WEB-BUS" required>
+            </label>
+            <label>
+              Plate Number
+              <input name="plateNumber" value="WEB 0001" required>
+            </label>
+            <label>
+              Route ID
+              <input name="routeId" type="number" value="101" min="1" required>
+            </label>
+            <button type="submit">Create Bus</button>
+          </form>
+        </article>
+
+        <article class="panel wide">
+          <div class="section-heading compact-heading">
+            <h3>Admin Data</h3>
+            <div class="action-row">
+              <button id="adminLoadRoutesBtn" class="secondary">Load Routes</button>
+              <button id="adminLoadBusesBtn" class="secondary">Load Buses</button>
+            </div>
+          </div>
+          <div id="adminDataList" class="cards empty">Admin data will appear here.</div>
+        </article>
+      </div>
+    </section>
+
+    <section id="driver" class="tab-panel">
+      <div class="section-heading">
+        <div>
+          <p class="tag">DRIVER only</p>
+          <h2>Driver Panel</h2>
+        </div>
+        <span class="pill" id="driverAccessPill">Login as Driver to use trip APIs</span>
+      </div>
+
+      <div class="content-grid three">
+        <article class="panel">
+          <h3>Start Trip</h3>
+          <form id="startTripForm" class="stack-form">
+            <label>
+              Bus ID
+              <input name="busId" type="number" value="202" min="1" required>
+            </label>
+            <button type="submit">Start Trip</button>
+          </form>
+          <p class="hint">If bus 202 already has an active trip, complete that trip first or use another bus.</p>
+        </article>
+
+        <article class="panel">
+          <h3>Send Location</h3>
+          <form id="sendLocationForm" class="stack-form">
+            <label>
+              Trip ID
+              <input name="tripId" type="number" value="301" min="1" required>
+            </label>
+            <label>
+              Bus ID
+              <input name="busId" type="number" value="201" min="1" required>
+            </label>
+            <div class="split">
+              <label>
+                Latitude
+                <input name="latitude" type="number" value="2.9470" step="0.000001" required>
+              </label>
+              <label>
+                Longitude
+                <input name="longitude" type="number" value="101.8771" step="0.000001" required>
+              </label>
+            </div>
+            <button type="submit">Send Location</button>
+          </form>
+        </article>
+
+        <article class="panel">
+          <h3>Complete Trip</h3>
+          <form id="completeTripForm" class="stack-form">
+            <label>
+              Trip ID
+              <input name="tripId" type="number" value="301" min="1" required>
+            </label>
+            <button type="submit">Complete Trip</button>
+          </form>
+        </article>
+
+        <article class="panel wide">
+          <div class="section-heading compact-heading">
+            <h3>Driver Result</h3>
+            <button id="driverLoadLiveBtn" class="secondary">Refresh Live Buses</button>
+          </div>
+          <div id="driverDataList" class="cards empty">Driver results will appear here.</div>
+        </article>
+      </div>
+    </section>
+
+    <section id="log" class="tab-panel">
+      <div class="section-heading">
+        <div>
+          <p class="tag">Debug</p>
+          <h2>Request Log</h2>
+        </div>
+        <button id="clearLogBtn" class="secondary">Clear Log</button>
+      </div>
+      <pre id="logBox"></pre>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin=""></script>
+  <script src="./app.js"></script>
+</body>
+</html>
