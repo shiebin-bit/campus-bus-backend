@@ -2,6 +2,7 @@ package com.sanrio.busservice.bus.service;
 
 import com.sanrio.busservice.bus.dto.BusResponse;
 import com.sanrio.busservice.bus.dto.CreateBusRequest;
+import com.sanrio.busservice.bus.dto.UpdateBusRequest;
 import com.sanrio.busservice.bus.entity.Bus;
 import com.sanrio.busservice.bus.repository.BusRepository;
 import com.sanrio.busservice.common.BadRequestException;
@@ -87,5 +88,30 @@ class BusServiceTest {
         List<BusResponse> responses = busService.getBuses();
 
         assertThat(responses).extracting(BusResponse::busCode).containsExactly("BUS-A01", "BUS-A02");
+    }
+
+    @Test
+    void updateBusChangesExistingBus() {
+        Bus bus = Bus.builder().id(201L).busCode("BUS-A01").plateNumber("WAA 201").routeId(101L).build();
+        UpdateBusRequest request = new UpdateBusRequest("BUS-A01-UPDATED", "WAA 901", 102L);
+        when(busRepository.findById(201L)).thenReturn(Optional.of(bus));
+        when(busRepository.existsByBusCodeAndIdNot(request.busCode(), 201L)).thenReturn(false);
+        when(busRepository.existsByPlateNumberAndIdNot(request.plateNumber(), 201L)).thenReturn(false);
+        when(busRepository.save(bus)).thenReturn(bus);
+
+        BusResponse response = busService.updateBus(201L, request);
+
+        assertThat(response.busCode()).isEqualTo("BUS-A01-UPDATED");
+        assertThat(response.routeId()).isEqualTo(102L);
+    }
+
+    @Test
+    void deleteBusRemovesExistingBus() {
+        Bus bus = Bus.builder().id(201L).busCode("BUS-A01").plateNumber("WAA 201").routeId(101L).build();
+        when(busRepository.findById(201L)).thenReturn(Optional.of(bus));
+
+        busService.deleteBus(201L);
+
+        verify(busRepository).delete(bus);
     }
 }

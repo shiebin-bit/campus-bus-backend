@@ -4,6 +4,7 @@ import com.sanrio.routeservice.common.BadRequestException;
 import com.sanrio.routeservice.common.ResourceNotFoundException;
 import com.sanrio.routeservice.route.dto.CreateRouteRequest;
 import com.sanrio.routeservice.route.dto.RouteResponse;
+import com.sanrio.routeservice.route.dto.UpdateRouteRequest;
 import com.sanrio.routeservice.route.entity.Route;
 import com.sanrio.routeservice.route.repository.RouteRepository;
 import org.junit.jupiter.api.Test;
@@ -75,5 +76,29 @@ class RouteServiceTest {
         List<RouteResponse> responses = routeService.getRoutes();
 
         assertThat(responses).extracting(RouteResponse::id).containsExactly(101L, 102L);
+    }
+
+    @Test
+    void updateRouteChangesExistingRoute() {
+        Route route = Route.builder().id(101L).routeName("Campus Loop A").description("Old description").build();
+        UpdateRouteRequest request = new UpdateRouteRequest("Campus Loop Updated", "Updated description");
+        when(routeRepository.findById(101L)).thenReturn(Optional.of(route));
+        when(routeRepository.existsByRouteNameAndIdNot(request.routeName(), 101L)).thenReturn(false);
+        when(routeRepository.save(route)).thenReturn(route);
+
+        RouteResponse response = routeService.updateRoute(101L, request);
+
+        assertThat(response.routeName()).isEqualTo("Campus Loop Updated");
+        assertThat(response.description()).isEqualTo("Updated description");
+    }
+
+    @Test
+    void deleteRouteRemovesExistingRoute() {
+        Route route = Route.builder().id(101L).routeName("Campus Loop A").description("Main campus route").build();
+        when(routeRepository.findById(101L)).thenReturn(Optional.of(route));
+
+        routeService.deleteRoute(101L);
+
+        verify(routeRepository).delete(route);
     }
 }

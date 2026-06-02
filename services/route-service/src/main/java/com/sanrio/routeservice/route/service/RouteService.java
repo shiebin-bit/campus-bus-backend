@@ -4,6 +4,7 @@ import com.sanrio.routeservice.common.BadRequestException;
 import com.sanrio.routeservice.common.ResourceNotFoundException;
 import com.sanrio.routeservice.route.dto.CreateRouteRequest;
 import com.sanrio.routeservice.route.dto.RouteResponse;
+import com.sanrio.routeservice.route.dto.UpdateRouteRequest;
 import com.sanrio.routeservice.route.entity.Route;
 import com.sanrio.routeservice.route.repository.RouteRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,27 @@ public class RouteService {
     }
 
     public RouteResponse getRoute(Long routeId) {
-        return routeRepository.findById(routeId).map(this::toResponse)
+        return toResponse(findRoute(routeId));
+    }
+
+    @Transactional
+    public RouteResponse updateRoute(Long routeId, UpdateRouteRequest request) {
+        Route route = findRoute(routeId);
+        if (routeRepository.existsByRouteNameAndIdNot(request.routeName(), routeId)) {
+            throw new BadRequestException("Route name already exists");
+        }
+        route.setRouteName(request.routeName());
+        route.setDescription(request.description());
+        return toResponse(routeRepository.save(route));
+    }
+
+    @Transactional
+    public void deleteRoute(Long routeId) {
+        routeRepository.delete(findRoute(routeId));
+    }
+
+    private Route findRoute(Long routeId) {
+        return routeRepository.findById(routeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Route not found: " + routeId));
     }
 

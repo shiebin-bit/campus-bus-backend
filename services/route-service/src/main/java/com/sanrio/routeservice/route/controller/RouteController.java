@@ -3,14 +3,17 @@ package com.sanrio.routeservice.route.controller;
 import com.sanrio.routeservice.common.ApiResponse;
 import com.sanrio.routeservice.route.dto.CreateRouteRequest;
 import com.sanrio.routeservice.route.dto.RouteResponse;
+import com.sanrio.routeservice.route.dto.UpdateRouteRequest;
 import com.sanrio.routeservice.route.service.RouteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,5 +39,16 @@ public class RouteController {
     @GetMapping("/{routeId}")
     public ResponseEntity<ApiResponse<RouteResponse>> getRoute(@PathVariable Long routeId) {
         return ResponseEntity.ok(new ApiResponse<>("Route retrieved successfully", routeService.getRoute(routeId)));
+    }
+
+    @PutMapping("/{routeId}")
+    public ResponseEntity<ApiResponse<RouteResponse>> updateRoute(@PathVariable Long routeId, @Valid @RequestBody UpdateRouteRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>("Route updated successfully", routeService.updateRoute(routeId, request)));
+    }
+
+    @DeleteMapping("/{routeId}")
+    public ResponseEntity<Void> deleteRoute(@PathVariable Long routeId) {
+        routeService.deleteRoute(routeId);
+        return ResponseEntity.noContent().build();
     }
 }

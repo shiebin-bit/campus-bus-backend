@@ -2,6 +2,7 @@ package com.sanrio.busservice.bus.service;
 
 import com.sanrio.busservice.bus.dto.BusResponse;
 import com.sanrio.busservice.bus.dto.CreateBusRequest;
+import com.sanrio.busservice.bus.dto.UpdateBusRequest;
 import com.sanrio.busservice.bus.entity.Bus;
 import com.sanrio.busservice.bus.repository.BusRepository;
 import com.sanrio.busservice.common.BadRequestException;
@@ -35,7 +36,32 @@ public class BusService {
     }
 
     public BusResponse getBus(Long busId) {
-        return busRepository.findById(busId).map(this::toResponse).orElseThrow(() -> new ResourceNotFoundException("Bus not found: " + busId));
+        return toResponse(findBus(busId));
+    }
+
+    @Transactional
+    public BusResponse updateBus(Long busId, UpdateBusRequest request) {
+        Bus bus = findBus(busId);
+        if (busRepository.existsByBusCodeAndIdNot(request.busCode(), busId)) {
+            throw new BadRequestException("Bus code already exists");
+        }
+        if (busRepository.existsByPlateNumberAndIdNot(request.plateNumber(), busId)) {
+            throw new BadRequestException("Plate number already exists");
+        }
+        bus.setBusCode(request.busCode());
+        bus.setPlateNumber(request.plateNumber());
+        bus.setRouteId(request.routeId());
+        return toResponse(busRepository.save(bus));
+    }
+
+    @Transactional
+    public void deleteBus(Long busId) {
+        busRepository.delete(findBus(busId));
+    }
+
+    private Bus findBus(Long busId) {
+        return busRepository.findById(busId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bus not found: " + busId));
     }
 
     private BusResponse toResponse(Bus bus) {

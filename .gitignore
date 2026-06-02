@@ -5,6 +5,7 @@ docs/
 *.err.log
 *.out.log
 .env
+.codex-remote-attachments/
 .github/java-upgrade/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
